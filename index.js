@@ -17,8 +17,10 @@ async function dig({ domain, delay, ts_start }, host) {
             if (3 <= ok)
                 return { host, duration, output };
         }
-
-        console.log(host, duration, 'fail');
+        else {
+            ok = 0;
+            console.log(host, duration, 'fail');
+        }
         await sleep(delay);
     }
 }
