@@ -6,11 +6,16 @@ const sleep = util.promisify((delay, func) => setTimeout(func, delay));
 
 async function dig({ domain, delay, ts_start }, host) {
     const cmd = host ? `dig ${domain} @${host}` : `dig ${domain}`;
+    let ok = 0;
     for (; ;) {
         const output = (await exec(cmd)).stdout;
         const duration = (new Date() - ts_start) / 1000;
+
         if (output.includes('ANSWER SECTION:')) {
-            return { host, duration, output };
+            ++ok;
+            console.log(host, duration, 'ok', ok);
+            if (3 <= ok)
+                return { host, duration, output };
         }
 
         console.log(host, duration, 'fail');
