@@ -4,22 +4,43 @@ const util = require('util');
 const exec = util.promisify(child_process.exec);
 const sleep = util.promisify((delay, func) => setTimeout(func, delay));
 
-async function dig({ domain, delay, ts_start }, host) {
+async function dig_ok({ domain, delay, ts_start }, host) {
     const cmd = host ? `dig ${domain} @${host}` : `dig ${domain}`;
-    let ok = 0;
+    let cnt = 0;
     for (; ;) {
         const output = (await exec(cmd)).stdout;
         const duration = (new Date() - ts_start) / 1000;
 
         if (output.includes('ANSWER SECTION:')) {
-            ++ok;
-            console.log(host, duration, 'ok', ok);
-            if (3 <= ok)
+            ++cnt;
+            console.log(host, duration, 'ok', cnt);
+            if (3 <= cnt)
                 return { host, duration, output };
         }
         else {
-            ok = 0;
+            cnt = 0;
             console.log(host, duration, 'fail');
+        }
+        await sleep(delay);
+    }
+}
+
+async function dig_fail({ domain, delay, ts_start }, host) {
+    const cmd = host ? `dig ${domain} @${host}` : `dig ${domain}`;
+    let cnt = 0;
+    for (; ;) {
+        const output = (await exec(cmd)).stdout;
+        const duration = (new Date() - ts_start) / 1000;
+
+        if (!output.includes('ANSWER SECTION:')) {
+            ++cnt;
+            console.log(host, duration, 'fail', cnt);
+            if (3 <= cnt)
+                return { host, duration, output };
+        }
+        else {
+            cnt = 0;
+            console.log(host, duration, 'ok');
         }
         await sleep(delay);
     }
@@ -31,12 +52,14 @@ async function main() {
         delay: 1000,
         ts_start: new Date(),
     };
+    // const test = dig_ok;
+    const test = dig_fail;
 
     const res = await Promise.all([
-        dig(opt, ''),
-        dig(opt, '8.8.8.8'),
-        dig(opt, '1.1.1.1'),
-        dig(opt, 'ns-616.awsdns-13.net'),
+        test(opt, ''),
+        test(opt, '8.8.8.8'),
+        test(opt, '1.1.1.1'),
+        test(opt, 'ns-616.awsdns-13.net'),
     ]);
 
     console.log();
